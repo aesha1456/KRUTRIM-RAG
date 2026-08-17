@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/">
+  <script>if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches){document.documentElement.setAttribute('data-theme','dark')}</script>
+  <title>Krutrim RAG — Shared Chat</title>
+  <link rel="stylesheet" href="../fonts/fonts.css">
+  <link rel="stylesheet" href="../css/tokens.css?v=1">
+  <link rel="stylesheet" href="../css/base.css?v=1">
+  <link rel="stylesheet" href="../css/components.css?v=1">
+  <link rel="icon" type="image/svg+xml" href="../isro-logo.svg">
+  <script src="../js/lib/pdf-adapter.js"></script>
+  <script src="../js/lib/marked.min.js"></script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { display: flex; flex-direction: column; }
+    .shared-header { position: sticky; top: 0; z-index: 100; padding: var(--space-lg) var(--space-xl); border-bottom: 1px solid var(--hairline); display: flex; align-items: center; gap: var(--space-md); background: var(--canvas); }
+    .shared-header img { height: 28px; }
+    .shared-header-brand { display: flex; flex-direction: column; justify-content: center; }
+    .shared-header-title { font-size: var(--text-heading-md); font-weight: var(--weight-bold); color: var(--ink); line-height: 1.2; }
+    .shared-header-sub { font-size: 12px; color: var(--mute); line-height: 1.2; }
+    .shared-header-badge { font-size: var(--text-caption-md); color: var(--mute); background: var(--surface-card); border: 1px solid var(--hairline); border-radius: var(--radius-full); padding: 2px 8px; margin-left: auto; }
+    .shared-layout { display: flex; flex: 1; overflow: hidden; }
+    .shared-body { flex: 1; max-width: 760px; width: 100%; margin: 0 auto; padding: var(--space-xl); overflow-y: auto; }
+    .shared-empty { text-align: center; color: var(--mute); padding: var(--space-section) 0; }
+    .msg { margin-bottom: var(--space-xl); position: relative; }
+    .msg-role { font-size: var(--text-caption-md); font-weight: var(--weight-medium); text-transform: uppercase; letter-spacing: 0.05em; color: var(--mute); margin-bottom: var(--space-xs); }
+    .msg-actions { display: flex; align-items: center; gap: 2px; margin-top: 4px; }
+    .msg-copy { background: none; border: none; border-radius: var(--radius-sm); color: var(--mute); cursor: pointer; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+    .msg-copy:hover { background: var(--surface-card); color: var(--ink); }
+    .msg-copy.copied { color: var(--success); }
+    .msg-content { font-size: var(--text-body-md); line-height: var(--leading-body); color: var(--body); }
+    .msg-user .msg-content { background: var(--surface-card); border: 1px solid var(--hairline); border-radius: var(--radius-md); padding: var(--space-md) var(--space-lg); }
+    .msg-bot .msg-content { padding-left: 0; }
+    .msg-content p { margin-bottom: var(--space-sm); }
+    .msg-content ul, .msg-content ol { padding-left: var(--space-lg); margin-bottom: var(--space-sm); }
+    .msg-content code { font-family: var(--font-mono); font-size: 13px; background: var(--surface-card); padding: 1px 4px; border-radius: 3px; }
+    .msg-content pre { background: var(--surface-dark); color: var(--on-dark); padding: var(--space-md); border-radius: var(--radius-md); overflow-x: auto; margin-bottom: var(--space-sm); }
+    .msg-content pre code { background: none; padding: 0; color: inherit; }
+    .message-sources.open {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: var(--space-sm);
+      margin-top: var(--space-sm);
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--hairline);
+    }
+    .source-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: var(--space-sm) var(--space-md);
+      background-color: var(--surface-soft);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+      cursor: pointer !important;
+    }
+    .source-card:hover {
+      background-color: var(--surface-card);
+      border-color: var(--hairline-strong);
+    }
+    .source-card:hover .source-card-title {
+      color: #4285f4;
+      text-decoration: underline;
+    }
+    [data-theme="dark"] .source-card:hover .source-card-title {
+      color: #5c9cf5;
+    }
+    .source-card-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .source-card-header svg {
+      color: var(--mute);
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+    .source-card-title {
+      flex: 1;
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      color: var(--ink);
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .source-card-page {
+      font-size: 10px;
+      font-weight: var(--weight-medium);
+      color: var(--mute);
+      background-color: var(--surface-card);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm);
+      padding: 1px 5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .source-card-excerpt {
+      font-size: 11px;
+      color: var(--mute);
+      line-height: 1.5;
+      max-height: 80px;
+      overflow-y: auto;
+      font-style: italic;
+    }
+    .error-card { background: var(--surface-card); border: 1px solid var(--hairline); border-radius: var(--radius-md); padding: var(--space-xl); text-align: center; max-width: 480px; margin: var(--space-section) auto; }
+    .error-card h2 { color: var(--ink); margin-bottom: var(--space-sm); }
+    .error-card p { color: var(--mute); margin-bottom: var(--space-lg); }
+    /* PDF Panel */
+    .pdf-panel { width: 0; overflow: hidden; transition: width 0.3s ease; border-left: 1px solid var(--hairline); background: var(--canvas); display: flex; flex-direction: column; flex-shrink: 0; min-height: 0; position: relative; }
+    .pdf-panel.open { width: var(--pdf-w, 440px); }
+    .pdf-drawer-handle { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: col-resize; z-index: 10; background: transparent; transition: background 0.15s; flex-shrink: 0; }
+    .pdf-drawer-handle:hover, .pdf-drawer-handle.dragging { background: rgba(66, 133, 244, 0.18); }
+    .pdf-drawer-handle::after { content: ''; position: absolute; left: 2px; top: 50%; transform: translateY(-50%); width: 2px; height: 32px; background: var(--hairline-strong); border-radius: 1px; opacity: 0; transition: opacity 0.15s; }
+    .pdf-drawer-handle:hover::after, .pdf-drawer-handle.dragging::after { opacity: 1; }
+    .pdf-canvas-area { flex: 1; overflow: auto; background: #6e6e6e; background: repeating-linear-gradient(45deg, #636363, #636363 2px, #6e6e6e 2px, #6e6e6e 10px); padding: 24px; }
+    [data-theme="dark"] .pdf-canvas-area { background: repeating-linear-gradient(45deg, #252525, #252525 2px, #2f2f2f 2px, #2f2f2f 10px); }
+    .pdf-panel-header { padding: 10px 14px 10px 18px; border-bottom: 1px solid var(--hairline); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; min-width: 0; }
+    .pdf-panel-title { font-size: 13px; font-weight: var(--weight-bold); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
+    .pdf-panel-close { background: none; border: none; cursor: pointer; color: var(--mute); padding: 4px; border-radius: var(--radius-sm); display: flex; align-items: center; }
+    .pdf-panel-close:hover { background: var(--surface-card); color: var(--ink); }
+    .pdf-toggle { display: flex; align-items: center; cursor: pointer; position: relative; gap: 4px; flex-shrink: 1; min-width: 0; overflow: hidden; }
+    .pdf-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .pdf-toggle-slider { position: relative; width: 28px; height: 16px; background: var(--hairline-strong); border-radius: 8px; transition: background 0.2s; flex-shrink: 0; }
+    .pdf-toggle-slider::before { content: ''; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+    .pdf-toggle input:checked + .pdf-toggle-slider { background: #10b981; }
+    .pdf-toggle input:checked + .pdf-toggle-slider::before { transform: translateX(12px); }
+    .pdf-toggle-label { font-size: 10px; color: var(--mute); font-weight: var(--weight-medium); user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+    .pdf-page-controls { display: flex; align-items: center; gap: 4px; background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 2px 5px; }
+    .pdf-page-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: none; border: none; border-radius: 4px; color: var(--mute); cursor: pointer; transition: color 0.15s, background-color 0.15s; font-size: 15px; font-weight: 500; line-height: 1; padding: 0; }
+    .pdf-page-btn:not(:disabled):hover { color: var(--ink); background: var(--surface-card); }
+    .pdf-page-btn:disabled { opacity: 0.3; cursor: default; }
+    .pdf-zoom-btn { font-size: 16px; font-weight: 600; }
+    .pdf-page-info { font-size: var(--text-caption-md); color: var(--mute); white-space: nowrap; }
+    .pdf-header-divider { width: 1px; height: 14px; background: var(--hairline-strong); margin: 0 4px; flex-shrink: 0; }
+    .pdf-loading, .pdf-error { position: fixed; z-index: 10; color: var(--mute); font-size: var(--text-body-sm); }
+    .pdf-error { color: #ef4444; text-align: center; max-width: 280px; }
+    @media (max-width: 480px) {
+      .pdf-toggle-label { display: none; }
+      .pdf-panel-header { padding: 8px 10px 8px 12px; gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="shared-header">
+    <img src="../isro-logo.svg" alt="ISRO Logo">
+    <div class="shared-header-brand">
+      <span class="shared-header-title">Krutrim RAG</span>
+      <span class="shared-header-sub">Knowledge Retrieval Transformer-Based Model</span>
+    </div>
+    <span class="shared-header-badge">Shared Chat</span>
+  </nav>
+
+  <div class="shared-layout">
+    <div class="shared-body" id="shared-body">
+      <div class="shared-empty">Loading shared chat...</div>
+    </div>
+
+    <!-- PDF Side Panel -->
+    <div class="pdf-panel" id="pdf-panel">
+      <div class="pdf-drawer-handle" id="pdf-resize-handle"></div>
+      <div class="pdf-panel-header">
+        <div style="flex:1;overflow:hidden;min-width:0;">
+          <div class="pdf-panel-title" id="pdf-title">Document</div>
+        </div>
+        <div class="pdf-page-controls">
+          <button class="pdf-page-btn pdf-zoom-btn" id="pdf-zoom-out" title="Zoom out">−</button>
+          <span class="pdf-page-info" id="pdf-zoom-level" style="min-width:34px;text-align:center;">Fit</span>
+          <button class="pdf-page-btn pdf-zoom-btn" id="pdf-zoom-in" title="Zoom in">+</button>
+          <span class="pdf-header-divider"></span>
+          <button class="pdf-page-btn" id="pdf-prev" disabled>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="pdf-page-info"><span id="pdf-cur">1</span>/<span id="pdf-total">1</span></span>
+          <button class="pdf-page-btn" id="pdf-next" disabled>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-shrink:0;">
+          <label class="pdf-toggle" title="Toggle highlights">
+            <input type="checkbox" id="pdf-toggle-highlight" checked>
+            <span class="pdf-toggle-slider"></span>
+            <span class="pdf-toggle-label">Text highlights</span>
+          </label>
+          <button class="pdf-panel-close" id="pdf-close" title="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+      <!-- PDF canvas -->
+      <div class="pdf-canvas-area">
+        <div id="pdf-page-canvas" style="min-height: 0;">
+          <div id="pdf-canvas-wrapper" style="position: relative; display: inline-block;">
+            <canvas id="pdf-canvas" style="display: block; box-shadow: 0 2px 6px rgba(0,0,0,0.3), 0 10px 32px rgba(0,0,0,0.25); border-radius: 2px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (async function() {
+    var body = document.getElementById('shared-body');
+    var shareToken = window.location.pathname.split('/shared/')[1];
+    if (!shareToken) {
+      body.innerHTML = '<div class="error-card"><h2>Invalid Link</h2><p>No share token found in the URL.</p><a href="/" class="btn-primary" style="display:inline-flex; text-decoration:none;">Go to Krutrim RAG</a></div>';
+      return;
+    }
+
+    var chatData;
+    try {
+      var res = await fetch('/api/shared/' + shareToken);
+      if (!res.ok) {
+        var err = await res.json().catch(function() { return {}; });
+        body.innerHTML = '<div class="error-card"><h2>Chat Not Found</h2><p>' + (err.detail || 'This share link is invalid or has been revoked.') + '</p><a href="/" class="btn-primary" style="display:inline-flex; text-decoration:none;">Go to Krutrim RAG</a></div>';
+        return;
+      }
+      chatData = await res.json();
+      document.title = 'Krutrim RAG — ' + (chatData.title || 'Shared Chat');
+    } catch(e) {
+      body.innerHTML = '<div class="error-card"><h2>Connection Error</h2><p>Could not load the shared chat.</p><a href="/" class="btn-primary" style="display:inline-flex; text-decoration:none;">Go to Krutrim RAG</a></div>';
+      return;
+    }
+
+    if (!chatData.messages || chatData.messages.length === 0) {
+      body.innerHTML = '<div class="shared-empty">This chat has no messages.</div>';
+      return;
+    }
+
+    var html = '';
+    booksMap = chatData.books || {};
+    chatData.messages.forEach(function(m) {
+      var isUser = m.role === 'user';
+      var rawText = isUser ? m.content : m.content.replace(/\[Book:[^\]]*?\]/g, '');
+      html += '<div class="msg msg-' + (isUser ? 'user' : 'bot') + '">';
+      html += '<div class="msg-role">' + (isUser ? 'You' : 'Krutrim RAG') + '</div>';
+      if (isUser) {
+        html += '<div class="msg-content">' + escapeHtml(m.content) + '</div>';
+      } else {
+        var text = m.content.replace(/\[Book:[^\]]*?\]/g, '');
+        if (window.marked) {
+          html += '<div class="msg-content markdown-body">' + marked.parse(text, { breaks: true }) + '</div>';
+        } else {
+          html += '<div class="msg-content">' + escapeHtml(text) + '</div>';
+        }
+        if (m.sources && m.sources.length > 0) {
+          html += '<div class="message-sources open">';
+          m.sources.forEach(function(s) {
+            var title = s.title || booksMap[s.book_id] || friendlyName(s.book_id) || 'Document';
+            var page = s.page !== undefined ? s.page : (s.page_range && s.page_range.length > 0 ? s.page_range[0] : 1);
+            var excerpt = s.excerpt || '';
+            var elementIds = JSON.stringify(s.element_ids || []);
+            var boundingBoxes = JSON.stringify(s.bounding_boxes || []);
+            html += '<div class="source-card" data-src-book_id="' + escapeAttr(s.book_id || title) + '" data-src-title="' + escapeAttr(title) + '" data-src-page="' + page + '" data-src-excerpt="' + escapeAttr(excerpt) + '" data-src-element-ids="' + escapeAttr(elementIds) + '" data-src-bounding-boxes="' + escapeAttr(boundingBoxes) + '">';
+            html += '<div class="source-card-header">';
+            html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+            html += '<span class="source-card-title">' + escapeHtml(title) + '</span>';
+            html += '<span class="source-card-page">p. ' + page + '</span>';
+            html += '</div>';
+            if (excerpt) html += '<div class="source-card-excerpt">&ldquo;' + escapeHtml(excerpt) + '&rdquo;</div>';
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+      }
+      html += '<div class="msg-actions">';
+      html += '<button class="msg-copy" title="Copy" data-raw="' + escapeAttr(rawText) + '">';
+      html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+      html += '</button>';
+      html += '</div>';
+      html += '</div>';
+    });
+    body.innerHTML = html;
+
+    // Copy button
+    body.addEventListener('click', function(e) {
+      var btn = e.target.closest('.msg-copy');
+      if (!btn) return;
+      var raw = btn.getAttribute('data-raw');
+      navigator.clipboard.writeText(raw).then(function() {
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        setTimeout(function() {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+        }, 2000);
+      });
+    });
+
+    // Source card click → open PDF panel
+    body.addEventListener('click', function(e) {
+      var card = e.target.closest('.source-card');
+      if (!card) return;
+      var title   = card.getAttribute('data-src-title');
+      var book_id = card.getAttribute('data-src-book_id') || title;
+      var page    = parseInt(card.getAttribute('data-src-page'), 10) || 1;
+      var excerpt = card.getAttribute('data-src-excerpt') || '';
+      var boundingBoxes = JSON.parse(card.getAttribute('data-src-bounding-boxes') || '[]');
+      var elementIds = JSON.parse(card.getAttribute('data-src-element-ids') || '[]');
+      if (title || book_id) openPdf({ title: title, book_id: book_id, page: page, excerpt: excerpt, bounding_boxes: boundingBoxes, element_ids: elementIds });
+    });
+  })();
+
+  function friendlyName(str) {
+    if (!str) return '';
+    return str.replace(/[-_]+/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escapeAttr(str) {
+    return escapeHtml(str).replace(/'/g,'&#39;');
+  }
+
+  // ── PDF Viewer ──
+  var booksMap = {};
+  var pdfPanel = document.getElementById('pdf-panel');
+  var pdfCanvas = document.getElementById('pdf-canvas');
+  var pdfTitle = document.getElementById('pdf-title');
+  var pdfSubtitle = document.getElementById('pdf-subtitle');
+  var pdfCur = document.getElementById('pdf-cur');
+  var pdfTotal = document.getElementById('pdf-total');
+  var pdfPrev = document.getElementById('pdf-prev');
+  var pdfNext = document.getElementById('pdf-next');
+  var pdfZoomIn = document.getElementById('pdf-zoom-in');
+  var pdfZoomOut = document.getElementById('pdf-zoom-out');
+  var pdfZoomLevel = document.getElementById('pdf-zoom-level');
+  var pdfClose = document.getElementById('pdf-close');
+  var pdfToggleHighlight = document.getElementById('pdf-toggle-highlight');
+  var pdfDoc = null, curPage = 1, totalPages = 1, rendering = false, pendingPage = null, currentSrc = null, zoomFactor = 1.0;
+  var shareToken = window.location.pathname.split('/shared/')[1];
+  var pdfCanvasArea = document.querySelector('.pdf-canvas-area');
+  var pdfResizeHandle = document.getElementById('pdf-resize-handle');
+
+  var PDF_MIN_W = 320, PDF_MAX_W = Math.min(900, window.innerWidth - 40);
+  function applyPdfWidth(w) {
+    var w2 = Math.max(PDF_MIN_W, Math.min(PDF_MAX_W, w));
+    document.documentElement.style.setProperty('--pdf-w', w2 + 'px');
+  }
+  if (pdfResizeHandle) {
+    pdfResizeHandle.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      pdfResizeHandle.classList.add('dragging');
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+      var startX = e.clientX, startW = pdfPanel.offsetWidth;
+      function onMove(ev) { applyPdfWidth(startW + (startX - ev.clientX)); }
+      function onUp() {
+        pdfResizeHandle.classList.remove('dragging');
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (pdfDoc) renderPdfPage(curPage);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+  window.addEventListener('resize', function() {
+    PDF_MAX_W = Math.min(900, Math.max(320, window.innerWidth - 40));
+    if (pdfDoc) renderPdfPage(curPage);
+  });
+
+  function pdfShowMsg(msg, isError) {
+    var existing = pdfCanvasArea.querySelector('.pdf-loading, .pdf-error');
+    if (existing) existing.remove();
+    var el = document.createElement('div');
+    el.className = isError ? 'pdf-error' : 'pdf-loading';
+    el.textContent = msg;
+    pdfCanvasArea.appendChild(el);
+  }
+  function pdfHideMsg() {
+    var existing = pdfCanvasArea.querySelector('.pdf-loading, .pdf-error');
+    if (existing) existing.remove();
+  }
+
+  // worker src set inside openPdf() after pdfjsLib loads
+
+  function renderPdfPage(num) {
+    if (!pdfDoc || !pdfCanvas) return;
+    if (rendering) { pendingPage = num; return; }
+    rendering = true;
+    pdfHideMsg();
+    pdfDoc.getPage(num).then(function(page) {
+      var ctx = pdfCanvas.getContext('2d', { willReadFrequently: true });
+      var vpAt1 = page.getViewport({ scale: 1 });
+      var availW = (pdfCanvasArea ? pdfCanvasArea.clientWidth : 400) - 24;
+      var availH = (pdfCanvasArea ? pdfCanvasArea.clientHeight : 500) - 56;
+      var fitScale = Math.min(availW / vpAt1.width, availH / vpAt1.height);
+      fitScale = Math.max(fitScale, 0.3);
+      var scale = fitScale * zoomFactor;
+      var viewport = page.getViewport({ scale: scale });
+      pdfCanvas.height = viewport.height;
+      pdfCanvas.width = viewport.width;
+      
+      pdfCanvas.style.width = viewport.width + 'px';
+      pdfCanvas.style.height = viewport.height + 'px';
+    pdfCanvas.style.maxWidth = '';
+    page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function() {
+        rendering = false;
+        if (currentSrc) {
+          if (currentSrc.bounding_boxes && currentSrc.bounding_boxes.length > 0) {
+            highlightBoundingBoxes(viewport);
+          } else if (currentSrc.excerpt) {
+            highlightTextOnPdf(page, currentSrc.excerpt, viewport);
+          }
+        }
+        if (pendingPage !== null) { renderPdfPage(pendingPage); pendingPage = null; }
+      }).catch(function(err) {
+        console.error('PDF render error:', err);
+        rendering = false;
+        pdfShowMsg('Failed to render page.', true);
+      });
+    }).catch(function(err) {
+      console.error('PDF getPage error:', err);
+      rendering = false;
+      pdfShowMsg('Failed to load page ' + num + '.', true);
+    });
+  }
+
+  function updatePdfControls() {
+    pdfCur.textContent = curPage;
+    pdfTotal.textContent = totalPages;
+    pdfPrev.disabled = curPage <= 1;
+    pdfNext.disabled = curPage >= totalPages;
+  }
+
+  function highlightBoundingBoxes(viewport) {
+    var existing = document.getElementById('pdf-highlight-overlay');
+    if (existing) existing.remove();
+    var boxes = currentSrc.bounding_boxes;
+    if (!boxes || boxes.length === 0) return;
+    var overlay = document.createElement('div');
+    overlay.id = 'pdf-highlight-overlay';
+    overlay.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;';
+    var sx = pdfCanvas.offsetWidth / pdfCanvas.width;
+    var sy = pdfCanvas.offsetHeight / pdfCanvas.height;
+    var tf = viewport.transform;
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i];
+      if (!b || b.length < 4) continue;
+      var x1 = b[0], y1 = b[1], x2 = b[2], y2 = b[3];
+      var p1 = pdfjsLib.Util.transform(tf, [x1, y1, 0, 1]);
+      var p2 = pdfjsLib.Util.transform(tf, [x2, y2, 0, 1]);
+      var canvasX = p1[0] * sx, canvasY = p2[1] * sy, w = (p2[0] - p1[0]) * sx, h = (p1[1] - p2[1]) * sy;
+      if (w <= 0 || h <= 0) continue;
+      var rect = document.createElement('div');
+      rect.style.cssText = 'position: absolute; left: ' + canvasX + 'px; top: ' + canvasY + 'px; width: ' + w + 'px; height: ' + h + 'px; background: rgba(16, 185, 129, 0.3); border-radius: 2px; pointer-events: none;';
+      overlay.appendChild(rect);
+    }
+        if (overlay.childNodes.length > 0) {
+          var wrapper = document.getElementById('pdf-canvas-wrapper');
+          if (wrapper) wrapper.appendChild(overlay);
+          if (!pdfToggleHighlight.checked) overlay.style.display = 'none';
+        }
+  }
+
+  async function highlightTextOnPdf(page, searchText, viewport) {
+    var existing = document.getElementById('pdf-highlight-overlay');
+    if (existing) existing.remove();
+    if (!searchText) return;
+    try {
+      var textContent = await page.getTextContent();
+      var overlay = document.createElement('div');
+      overlay.id = 'pdf-highlight-overlay';
+      overlay.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;';
+      var sx = pdfCanvas.offsetWidth / pdfCanvas.width;
+      var sy = pdfCanvas.offsetHeight / pdfCanvas.height;
+      var searchNorm = searchText.toLowerCase().replace(/\s+/g, ' ').trim();
+      var searchWords = searchNorm.split(' ').filter(function(w) { return w.length > 4; }).slice(0, 15);
+      if (searchWords.length === 0) return;
+      for (var i = 0; i < textContent.items.length; i++) {
+        var item = textContent.items[i];
+        if (!item.str || !item.str.trim()) continue;
+        var itemText = item.str.toLowerCase();
+        var hasMatch = searchWords.some(function(word) { return itemText.includes(word); });
+        if (!hasMatch) continue;
+        var tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+        var x = tx[4] * sx, y = tx[5] * sy;
+        var fontSize = (Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) / viewport.height) * pdfCanvas.offsetHeight;
+        var itemWidth = ((item.width * viewport.scale) / viewport.width) * pdfCanvas.offsetWidth;
+        var itemHeight = fontSize + 4;
+        var rect = document.createElement('div');
+        rect.style.cssText = 'position: absolute; left: ' + x + 'px; top: ' + (y - fontSize) + 'px; width: ' + itemWidth + 'px; height: ' + itemHeight + 'px; background: rgba(16, 185, 129, 0.3); border-radius: 2px; pointer-events: none;';
+        overlay.appendChild(rect);
+      }
+      if (overlay.childNodes.length > 0) {
+        var wrapper = document.getElementById('pdf-canvas-wrapper');
+        if (wrapper) wrapper.appendChild(overlay);
+        if (!pdfToggleHighlight.checked) overlay.style.display = 'none';
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function openPdf(src) {
+    currentSrc = src;
+    zoomFactor = 1.0;
+    var bookId = src.book_id || src.title;
+    pdfTitle.textContent = 'Loading...';
+    pdfDoc = null;
+    pdfPanel.style.transition = 'none';
+    pdfPanel.classList.add('open');
+    void pdfPanel.offsetHeight;
+    pdfPanel.style.transition = '';
+    applyPdfWidth(PDF_MAX_W > 440 ? 440 : PDF_MAX_W);
+    pdfShowMsg('Loading PDF...');
+    pdfCanvas.style.display = 'none';
+
+    if (window.pdfjsLib && bookId) {
+      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '../js/lib/pdf.worker.min.mjs';
+      }
+      var url = '/pdf/' + encodeURIComponent(bookId) + '?share=' + encodeURIComponent(shareToken);
+      console.log('[PDF] Loading:', url);
+      try {
+        pdfDoc = await pdfjsLib.getDocument({ url: url }).promise;
+        totalPages = pdfDoc.numPages;
+        curPage = Math.max(1, Math.min(src.page || 1, totalPages));
+      } catch(err) {
+        console.error('[PDF] Load failed:', err);
+        pdfDoc = null;
+        pdfShowMsg('Could not load PDF. ' + (err.message || ''), true);
+      }
+    } else if (!window.pdfjsLib) {
+      pdfShowMsg('PDF.js library not loaded.', true);
+    }
+
+    pdfTitle.textContent = src.title || booksMap[src.book_id] || friendlyName(src.book_id) || 'Document';
+    updatePdfControls();
+    if (pdfDoc) {
+      pdfCanvas.style.display = '';
+      pdfHideMsg();
+      renderPdfPage(curPage);
+    }
+  }
+
+  function clearPdfHighlight() {
+    var existing = document.getElementById('pdf-highlight-overlay');
+    if (existing) existing.remove();
+  }
+
+  function updatePdfZoomDisplay() {
+    if (!pdfZoomLevel) return;
+    pdfZoomLevel.textContent = zoomFactor === 1.0 ? 'Fit' : Math.round(zoomFactor * 100) + '%';
+  }
+
+  function rezoom() { updatePdfZoomDisplay(); if (pdfCanvasArea) pdfCanvasArea.style.cursor = zoomFactor > 1 ? 'grab' : ''; renderPdfPage(curPage); }
+
+  pdfZoomOut.addEventListener('click', function() {
+    zoomFactor = Math.max(0.25, +(zoomFactor / 1.25).toFixed(2));
+    rezoom();
+  });
+  pdfZoomIn.addEventListener('click', function() {
+    zoomFactor = Math.min(5, +(zoomFactor * 1.25).toFixed(2));
+    rezoom();
+  });
+  pdfZoomLevel.addEventListener('dblclick', function() {
+    zoomFactor = 1.0;
+    rezoom();
+  });
+
+  if (pdfCanvasArea) {
+    var isPanning = false, panX = 0, panY = 0;
+    pdfCanvasArea.addEventListener('mousedown', function(e) {
+      if (zoomFactor <= 1) return;
+      isPanning = true;
+      panX = e.clientX;
+      panY = e.clientY;
+      pdfCanvasArea.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (!isPanning) return;
+      pdfCanvasArea.scrollLeft -= e.clientX - panX;
+      pdfCanvasArea.scrollTop -= e.clientY - panY;
+      panX = e.clientX;
+      panY = e.clientY;
+    });
+    document.addEventListener('mouseup', function() {
+      if (!isPanning) return;
+      isPanning = false;
+      pdfCanvasArea.style.cursor = zoomFactor > 1 ? 'grab' : '';
+    });
+  }
+
+  pdfPrev.addEventListener('click', function() {
+    if (curPage > 1) { curPage--; updatePdfControls(); clearPdfHighlight(); renderPdfPage(curPage); }
+  });
+  pdfNext.addEventListener('click', function() {
+    if (curPage < totalPages) { curPage++; updatePdfControls(); clearPdfHighlight(); renderPdfPage(curPage); }
+  });
+  pdfClose.addEventListener('click', function() {
+    pdfPanel.classList.remove('open'); currentSrc = null; clearPdfHighlight();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && pdfPanel.classList.contains('open')) { pdfPanel.classList.remove('open'); currentSrc = null; clearPdfHighlight(); }
+  });
+  pdfToggleHighlight.addEventListener('change', function() {
+    var overlay = document.getElementById('pdf-highlight-overlay');
+    if (overlay) overlay.style.display = this.checked ? '' : 'none';
+  });
+  </script>
+</body>
+</html>

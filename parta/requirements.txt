@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pypdf
+requests
+bcrypt
+PyJWT
+python-multipart
+opendataloader-pdf[hybrid]>=2.0
+docling==2.91.0

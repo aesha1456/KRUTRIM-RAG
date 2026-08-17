@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KRUTRIM RAG</title>
+  <link rel="stylesheet" href="/static/fonts/fonts.css">
+  <link rel="stylesheet" href="/static/css/tokens.css?v=7">
+  <link rel="stylesheet" href="/static/css/base.css?v=7">
+  <link rel="stylesheet" href="/static/css/components.css?v=7">
+  <link rel="stylesheet" href="/static/css/parta.css?v=7">
+  <link rel="icon" type="image/svg+xml" href="/static/static/isro-logo.svg">
+</head>
+<body>
+
+  <div class="pipeline-shell auth-mode" id="pipelineShell">
+
+  <!-- ══════════════════════════════════════
+       AUTH CARD
+  ══════════════════════════════════════ -->
+  <div class="card" id="authCard">
+    <div class="card-nav">
+      <div class="nav-brand" style="display: flex; align-items: center; gap: 12px;">
+        <img src="/static/static/isro-logo.svg" alt="ISRO Logo" style="height: 36px; width: auto;">
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+          <span class="ascii-logo" style="font-weight: 600; font-size: 18px; line-height: 1.2;">KRUTRIM RAG</span>
+          <span style="font-size: 12px; color: var(--mute); line-height: 1.2;">Knowledge Ingestion Pipeline</span>
+        </div>
+      </div>
+      <button class="btn-icon-ghost theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+
+    <div class="card-head">
+      <h1>Welcome back</h1>
+      <p>Secure Offline Knowledge Base</p>
+    </div>
+
+    <div class="alert" id="authAlert"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+      <button class="tab-btn"        onclick="switchTab('signup')">Sign Up</button>
+    </div>
+
+    <div id="loginForm">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" id="loginEmail" class="input-text" placeholder="rajan@isro.in" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="loginPassword" class="input-text" placeholder="••••••••" />
+      </div>
+      <button class="btn" onclick="handleLogin()">Login</button>
+    </div>
+
+    <div id="signupForm" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" id="signupName" class="input-text" placeholder="Dr. Rajan Kumar" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" id="signupEmail" class="input-text" placeholder="rajan@isro.in" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password (min 6 characters)</label>
+        <input type="password" id="signupPassword" class="input-text" placeholder="••••••••" />
+      </div>
+      <button class="btn" onclick="handleSignup()">Create Account</button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       MAIN CARD
+  ══════════════════════════════════════ -->
+  <div class="card wide" id="mainCard" style="display:none">
+
+    <div class="card-nav">
+      <div class="nav-brand" style="display: flex; align-items: center; gap: 12px;">
+        <img src="/static/static/isro-logo.svg" alt="ISRO Logo" style="height: 36px; width: auto;">
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+          <span class="ascii-logo" style="font-weight: 600; font-size: 18px; line-height: 1.2;">KRUTRIM RAG</span>
+          <span style="font-size: 12px; color: var(--mute); line-height: 1.2;">Knowledge Ingestion Pipeline</span>
+        </div>
+      </div>
+      <button class="btn-icon-ghost theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+
+    <div class="card-head">
+      <h1>Knowledge Base</h1>
+      <p id="welcomeUser"></p>
+    </div>
+
+    <div class="alert" id="mainAlert"></div>
+
+    <!-- ── HUB VIEW ── -->
+    <div id="hubView">
+      <div class="hub-actions">
+        <div class="hub-card" onclick="showUploadView()">
+          <div class="hub-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="hub-card-title">Upload New Book</div>
+          <div class="hub-card-sub">Add a PDF to the knowledge base</div>
+        </div>
+        <div class="hub-card" onclick="showPendingView()">
+          <div class="hub-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="hub-card-title">Pending Jobs</div>
+          <div class="hub-card-sub">Resume interrupted pipelines</div>
+          <div class="hub-badge" id="pendingBadge" style="display:none">0</div>
+        </div>
+      </div>
+
+      <div id="recentBooksSection" style="display:none">
+        <div class="section-title" id="recentBooksTitle">Books</div>
+        <div id="recentBooksList" class="recent-books-scroll"></div>
+      </div>
+
+      <div class="text-center mt-16">
+        <button class="link-btn" onclick="handleLogout()">Logout</button>
+      </div>
+    </div>
+
+    <!-- ── UPLOAD VIEW ── -->
+    <div id="uploadView" style="display:none">
+      <div class="view-header">
+        <button class="back-btn" onclick="showHubView()" title="Back to Hub">←</button>
+        <h3>Upload New Book</h3>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Book ID <span style="color:var(--mute)">(permanent identifier — no spaces)</span></label>
+        <input type="text" id="bookId" class="input-text" placeholder="e.g. GSAT-7A" oninput="checkBookId()" />
+        <div id="bookIdStatus" style="font-size:12px; margin-top:5px; min-height:18px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">PDF Document</label>
+        <div class="file-drop" id="fileDrop"
+             onclick="document.getElementById('fileInput').click()"
+             ondrop="handleDrop(event)"
+             ondragover="event.preventDefault(); this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')">
+          <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(event)" />
+          <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+          <p>Click to browse or drag &amp; drop PDF here</p>
+          <div class="filename" id="fileName">No file selected</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="toggle-row">
+          <div class="toggle-text">
+            <div class="t-title">Enable OCR</div>
+            <div class="t-sub">
+              Turn this on for scanned PDFs (images of text).
+              Leave off for digital PDFs — extraction is much faster without OCR.
+            </div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ocrToggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn" id="submitBtn" onclick="handleUpload()" disabled>Upload &amp; Process</button>
+    </div>
+
+    <!-- ── PENDING JOBS VIEW ── -->
+    <div id="pendingView" style="display:none">
+      <div class="view-header">
+        <button class="back-btn" onclick="showHubView()" title="Back to Hub">←</button>
+        <h3>Pending Jobs</h3>
+      </div>
+      <div id="pendingList" class="pending-jobs-scroll"><div class="empty-state">Loading...</div></div>
+    </div>
+
+    <!-- ── PROGRESS VIEW ── -->
+    <div id="progressView" style="display:none">
+      <div class="book-badge">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="progressBookId">—</span>
+      </div>
+
+      <!-- Phase indicator -->
+      <div class="phase-row">
+        <div class="phase-pill" id="phase1Pill">
+          <div class="phase-num">1</div>
+          <div>
+            <div style="font-weight:600">Extraction</div>
+            <div style="font-size:11px; margin-top:1px">Extract · Clean · Chunk</div>
+          </div>
+        </div>
+        <div class="phase-arrow">→</div>
+        <div class="phase-pill" id="phase2Pill">
+          <div class="phase-num">2</div>
+          <div>
+            <div style="font-weight:600">Ingestion</div>
+            <div style="font-size:11px; margin-top:1px">Embed · Graph</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-label">
+        <span id="stageLabel">Initializing...</span>
+        <span id="percentLabel">0%</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="mainBar"></div>
+      </div>
+      <div class="stage-msg" id="stageMsg">Starting pipeline...</div>
+
+      <div class="sub-progress" id="subProgress" style="display:none">
+        <div class="sub-item">
+          <span class="sub-label">Vector Store</span>
+          <div class="sub-bar-wrap">
+            <div class="sub-bar-fill qdrant" id="qdrantBar"></div>
+          </div>
+          <span class="sub-pct" id="qdrantPct">0%</span>
+        </div>
+        <div class="sub-item">
+          <span class="sub-label">Graph Build</span>
+          <div class="sub-bar-wrap">
+            <div class="sub-bar-fill neo4j" id="neo4jBar"></div>
+          </div>
+          <span class="sub-pct" id="neo4jPct">0%</span>
+        </div>
+      </div>
+
+      <div class="text-center mt-8">
+        <button class="link-btn" onclick="showHubView()">← Back to Hub</button>
+      </div>
+    </div>
+
+    <!-- ── SUCCESS VIEW ── -->
+    <div id="successView" style="display:none">
+
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div class="success-title" id="successBookId">—</div>
+      <div class="success-sub">Successfully added to the knowledge base</div>
+
+      <div class="coverage-wrap">
+        <div class="coverage-header">
+          <span class="coverage-label">Knowledge Coverage</span>
+          <span class="coverage-pct" id="rCoveragePct" style="color:var(--success)">—</span>
+        </div>
+        <div class="coverage-bar-bg">
+          <div class="coverage-bar-fill" id="rCoverageBar"
+               style="width:0%; background: linear-gradient(90deg, var(--accent), var(--success))"></div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="rTotalPages"  style="color:var(--ink)">—</div>
+          <div class="stat-lbl">Total Pages</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="rTotalChunks" style="color:var(--accent)">—</div>
+          <div class="stat-lbl">Chunks Indexed</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="rGoodPages"   style="color:var(--success)">—</div>
+          <div class="stat-lbl">Pages with Text</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="rAvgWords"    style="color:var(--warning)">—</div>
+          <div class="stat-lbl">Avg Words/Chunk</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-title">Page Breakdown</div>
+        <div class="breakdown-row">
+          <div class="bd-dot" style="background:var(--success)"></div>
+          <div class="bd-label">Text pages (good)</div>
+          <div class="bd-count" id="rGoodCount"  style="color:var(--success)">—</div>
+          <div class="bd-bar-wrap"><div class="bd-bar-fill" id="rGoodBar"  style="background:var(--success)"></div></div>
+        </div>
+        <div class="breakdown-row">
+          <div class="bd-dot" style="background:var(--warning)"></div>
+          <div class="bd-label">Short pages (captions)</div>
+          <div class="bd-count" id="rShortCount" style="color:var(--warning)">—</div>
+          <div class="bd-bar-wrap"><div class="bd-bar-fill" id="rShortBar" style="background:var(--warning)"></div></div>
+        </div>
+        <div class="breakdown-row">
+          <div class="bd-dot" style="background:var(--mute)"></div>
+          <div class="bd-label">Blank / image pages</div>
+          <div class="bd-count" id="rBlankCount" style="color:var(--mute)">—</div>
+          <div class="bd-bar-wrap"><div class="bd-bar-fill" id="rBlankBar" style="background:var(--mute)"></div></div>
+        </div>
+      </div>
+
+      <div class="warn-box" id="rWarnBox">
+        <strong>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Attention Required
+        </strong>
+        <span id="rWarnText"></span>
+      </div>
+
+      <button class="btn" onclick="showHubView()">Back to Hub</button>
+
+    </div>
+
+  </div><!-- end #mainCard -->
+
+  </div><!-- end .pipeline-shell -->
+
+  <!-- ══════════════════════════════════════
+       BOOK INFO MODAL
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="bookInfoModal" style="display:none" onclick="closeBookInfo(event)">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bookInfoTitle">
+      <div class="modal-head">
+        <div>
+          <div class="modal-kicker" id="modalKicker">Details</div>
+          <h2 id="bookInfoTitle">—</h2>
+        </div>
+        <button class="btn-icon-ghost" onclick="closeBookInfo()" aria-label="Close" title="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="bookInfoBody"></div>
+    </div>
+  </div>
+
+<script>
+  /* ─────────────────────────────────────────────
+     THEME TOGGLE
+  ───────────────────────────────────────────── */
+  (function() {
+    var saved = localStorage.getItem("isro-theme") || "light";
+    document.documentElement.setAttribute("data-theme", saved);
+    var sun = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+    var moon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    var toggles = document.querySelectorAll(".theme-toggle");
+    function paintToggles() {
+      toggles.forEach(function(t) { t.innerHTML = saved === "dark" ? sun : moon; });
+    }
+    paintToggles();
+    toggles.forEach(function(toggle) {
+      toggle.addEventListener("click", function() {
+        saved = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", saved);
+        localStorage.setItem("isro-theme", saved);
+        paintToggles();
+      });
+    });
+  })();
+
+  /* ─────────────────────────────────────────────
+     STATE
+  ───────────────────────────────────────────── */
+  let token            = localStorage.getItem("rag_token") || null;
+
+  function clampPct(n) {
+    return Math.min(100, Math.max(0, Number(n) || 0));
+  }
+  let sseSource        = null;
+  let selectedFile     = null;
+  let bookIdCheckTimer = null;
+  let currentBookId    = null;
+  let currentJobId     = null;
+  let booksData        = {};
+  let jobsData         = {};
+
+  window.onload = () => {
+    if (token && !tokenExpired()) showMainCard();
+    else if (token) handleLogout("Your session has expired. Please login again.");
+  };
+
+  function tokenExpired() {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp) return Date.now() >= payload.exp * 1000;
+    } catch {}
+    return false;
+  }
+
+  /* ─────────────────────────────────────────────
+     API HELPER
+  ───────────────────────────────────────────── */
+  async function api(method, path, body = null, isForm = false) {
+    const opts = { method, headers: token ? { Authorization: `Bearer ${token}` } : {} };
+    if (body && !isForm) {
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(body);
+    } else if (body && isForm) {
+      opts.body = body;
+    }
+    const res  = await fetch(path, opts);
+    // Token expired or invalid — force back to the login screen.
+    // Skip auth endpoints: a 401 there means bad credentials, not expiry.
+    if (res.status === 401 && !path.startsWith("/auth")) {
+      handleLogout("Your session has expired. Please login again.");
+      throw new Error("Session expired. Please login again.");
+    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Request failed");
+    return data;
+  }
+
+  /* ─────────────────────────────────────────────
+     AUTH
+  ───────────────────────────────────────────── */
+  function switchTab(tab) {
+    document.querySelectorAll(".tab-btn").forEach((b, i) => {
+      b.classList.toggle("active",
+        (i === 0 && tab === "login") || (i === 1 && tab === "signup"));
+    });
+    document.getElementById("loginForm").style.display  = tab === "login"  ? "block" : "none";
+    document.getElementById("signupForm").style.display = tab === "signup" ? "block" : "none";
+    clearAlert("authAlert");
+  }
+
+  async function handleSignup() {
+    const name     = document.getElementById("signupName").value.trim();
+    const email    = document.getElementById("signupEmail").value.trim();
+    const password = document.getElementById("signupPassword").value;
+    clearAlert("authAlert");
+    try {
+      await api("POST", "/auth/signup", { name, email, password });
+      showAlert("authAlert", "Account created! Please login.", "success");
+      switchTab("login");
+      document.getElementById("loginEmail").value = email;
+    } catch (e) { showAlert("authAlert", e.message); }
+  }
+
+  async function handleLogin() {
+    const email    = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    clearAlert("authAlert");
+    try {
+      const data = await api("POST", "/auth/login", { email, password });
+      token = data.token;
+      localStorage.setItem("rag_token", token);
+      if (data.user && data.user.role)
+        localStorage.setItem("rag_role", data.user.role);
+      showMainCard(data.user);
+    } catch (e) { showAlert("authAlert", e.message); }
+  }
+
+  function handleLogout(message) {
+    token = null;
+    localStorage.removeItem("rag_token");
+    localStorage.removeItem("rag_role");
+    if (sseSource) { sseSource.close(); sseSource = null; }
+    document.getElementById("pipelineShell").classList.remove("main-mode");
+    document.getElementById("pipelineShell").classList.add("auth-mode");
+    document.getElementById("authCard").style.display = "flex";
+    document.getElementById("authCard").style.flexDirection = "column";
+    document.getElementById("mainCard").style.display = "none";
+    switchTab("login");
+    if (message) showAlert("authAlert", message, "warn");
+  }
+
+  /* ─────────────────────────────────────────────
+     VIEW NAVIGATION
+  ───────────────────────────────────────────── */
+  function showView(id) {
+    ["hubView","uploadView","pendingView","progressView","successView"]
+      .forEach(v => document.getElementById(v).style.display = "none");
+    document.getElementById(id).style.display = "block";
+  }
+
+  function showMainCard(user = null) {
+    document.getElementById("pipelineShell").classList.remove("auth-mode");
+    document.getElementById("pipelineShell").classList.add("main-mode");
+    document.getElementById("authCard").style.display = "none";
+    document.getElementById("mainCard").style.display = "block";
+    if (user) {
+      document.getElementById("welcomeUser").textContent = `Welcome, ${user.name}`;
+    } else {
+      // Try to decode name from stored token
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        document.getElementById("welcomeUser").textContent = `Welcome, ${payload.name}`;
+      } catch {}
+    }
+    showHubView();
+    resumeActiveJob();
+  }
+
+  async function resumeActiveJob() {
+    try {
+      const data = await api("GET", "/active_job");
+      const job  = data.job;
+      if (!job) return;
+      // Reconnect SSE to the in-flight job so progress picks up where it was.
+      if (job.status === "queued" || job.status === "extracting" || job.status === "ingesting") {
+        showProgressView(job.book_id, job.job_id);
+      }
+    } catch {}
+  }
+
+  function showHubView() {
+    clearAlert("mainAlert");
+    showView("hubView");
+    loadHubData();
+  }
+
+  function showUploadView() {
+    clearAlert("mainAlert");
+    resetUploadForm();
+    showView("uploadView");
+  }
+
+  async function showPendingView() {
+    showView("pendingView");
+    document.getElementById("pendingList").innerHTML =
+      '<div class="empty-state">Loading...</div>';
+    try {
+      const data = await api("GET", "/pending_jobs");
+      renderPendingJobs(data.jobs);
+    } catch (e) {
+      document.getElementById("pendingList").innerHTML =
+        `<div class="empty-state" style="color:var(--danger)">Failed to load jobs: ${e.message}</div>`;
+    }
+  }
+
+  function showProgressView(bookId, jobId) {
+    currentBookId = bookId;
+    currentJobId  = jobId;
+    document.getElementById("progressBookId").textContent = bookId;
+    // Reset bars
+    document.getElementById("mainBar").style.width       = "0%";
+    document.getElementById("mainBar").style.background  = "";
+    document.getElementById("stageLabel").textContent    = "Initializing...";
+    document.getElementById("percentLabel").textContent  = "0%";
+    document.getElementById("stageMsg").textContent      = "Connecting...";
+    document.getElementById("subProgress").style.display = "none";
+    document.getElementById("statusDot").className       = "status-dot";
+    setPhase(0);
+    showView("progressView");
+    startSSE(jobId);
+  }
+
+  /* ─────────────────────────────────────────────
+     HUB DATA
+  ───────────────────────────────────────────── */
+  async function loadHubData() {
+    // Load pending count and recent books in parallel
+    try {
+      const [pendingData, libraryData] = await Promise.allSettled([
+        api("GET", "/pending_jobs"),
+        api("GET", "/library"),
+      ]);
+
+      // Pending badge
+      if (pendingData.status === "fulfilled") {
+        const count = pendingData.value.count || 0;
+        const badge = document.getElementById("pendingBadge");
+        if (count > 0) {
+          badge.textContent    = count;
+          badge.style.display  = "inline-block";
+        } else {
+          badge.style.display  = "none";
+        }
+      }
+
+      // Full book list — most recent first, scrollable, clickable
+      if (libraryData.status === "fulfilled") {
+        const books = (libraryData.value.books || []).slice().reverse();
+        const section = document.getElementById("recentBooksSection");
+        const list    = document.getElementById("recentBooksList");
+        const title   = document.getElementById("recentBooksTitle");
+        if (books.length) {
+          books.forEach(b => { booksData[b.book_id] = b; });
+          if (title) title.textContent = `Books (${books.length})`;
+          list.innerHTML = books.map(b => `
+            <div class="recent-book clickable" onclick="showBookInfo('${b.book_id}')" title="View book details">
+              <div class="recent-book-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              </div>
+              <div class="recent-book-info">
+                <div class="recent-book-title">${b.book_id}</div>
+                ${b.uploaded_by_name ? `<div class="recent-book-sub">Processed by ${esc(b.uploaded_by_name)}</div>` : ""}
+              </div>
+              <div class="recent-book-badge">Ready</div>
+              <svg class="recent-book-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          `).join("");
+          section.style.display = "block";
+        } else {
+          section.style.display = "none";
+        }
+      }
+    } catch {}
+  }
+
+  /* ─────────────────────────────────────────────
+     BOOK INFO MODAL
+  ───────────────────────────────────────────── */
+  function showBookInfo(bookId) {
+    const b = booksData[bookId];
+    if (!b) return;
+
+    const report = b.confidence_report || {};
+    const total  = report.total_pages        || b.total_sections || 0;
+    const good   = report.good_pages         || 0;
+    const short  = report.short_pages        || 0;
+    const blank  = report.blank_image_pages  || 0;
+    const chunks = report.total_chunks       || 0;
+    const avgW   = report.avg_words_per_chunk || 0;
+    const cov    = report.coverage_percent   || 0;
+
+    const covColor = cov >= 85 ? "var(--success)" : cov >= 65 ? "var(--warning)" : "var(--danger)";
+    const pct      = n => total ? Math.round(n / total * 100) + "%" : "0%";
+
+    document.getElementById("modalKicker").textContent = "Book Details";
+    document.getElementById("bookInfoTitle").textContent = b.book_title || b.book_id;
+
+    const stats = [
+      { label: "Book ID",    val: b.book_id,              cls: "mono" },
+      { label: "Total Pages", val: total },
+      { label: "Chunks Indexed", val: chunks },
+      { label: "Avg Words/Chunk", val: avgW },
+      { label: "Vectors Stored", val: b.qdrant_chunks_stored ?? "—" },
+      { label: "Graph Entities", val: b.neo4j_entities ?? "—" },
+      { label: "Processing Time", val: b.processing_seconds != null ? formatDuration(b.processing_seconds) : "—", cls: "accent" },
+      { label: "Processed On", val: b.completed_at ? formatDateTime(b.completed_at) : "—", cls: "date" },
+    ];
+
+    let html = `
+      <div class="bi-coverage">
+        <div class="coverage-header">
+          <span class="coverage-label">Knowledge Coverage</span>
+          <span class="coverage-pct" style="color:${covColor}">${cov}%</span>
+        </div>
+        <div class="coverage-bar-bg">
+          <div class="coverage-bar-fill" style="width:${cov}%; background: linear-gradient(90deg, var(--accent), ${covColor})"></div>
+        </div>
+      </div>
+
+      <div class="bi-stats">
+        ${stats.map(s => `
+          <div class="bi-stat">
+            <div class="bi-stat-val ${s.cls || ""}">${s.val}</div>
+            <div class="bi-stat-lbl">${s.label}</div>
+          </div>
+        `).join("")}
+      </div>
+
+      <div class="bi-breakdown">
+        <div class="breakdown-title">Page Breakdown</div>
+        <div class="breakdown-row">
+          <div class="bd-dot" style="background:var(--success)"></div>
+          <div class="bd-label">Text pages (good)</div>
+          <div class="bd-count" style="color:var(--success)">${good}</div>
+          <div class="bd-bar-wrap"><div class="bd-bar-fill" style="background:var(--success); width:${pct(good)}"></div></div>
+        </div>
+        <div class="breakdown-row">
+          <div class="bd-dot" style="background:var(--warning)"></div>
+          <div class="bd-label">Short pages (captions)</div>
+          <div class="bd-count" style="color:var(--warning)">${short}</div>
+          <div class="bd-bar-wrap"><div class="bd-bar-fill" style="background:var(--warning); width:${pct(short)}"></div></div>
+        </div>
+        <div class="breakdown-row">
+          <div class="bd-dot" style="background:var(--mute)"></div>
+          <div class="bd-label">Blank / image pages</div>
+          <div class="bd-count" style="color:var(--mute)">${blank}</div>
+          <div class="bd-bar-wrap"><div class="bd-bar-fill" style="background:var(--mute); width:${pct(blank)}"></div></div>
+        </div>
+      </div>
+
+      <div class="bi-meta">
+        ${b.processing_seconds != null ? `<span>Processed in ${formatDuration(b.processing_seconds)}</span>` : ""}
+        ${b.completed_at ? `<span>Completed ${formatRelativeTime(b.completed_at)}</span>` : ""}
+      </div>
+    `;
+
+    document.getElementById("bookInfoBody").innerHTML = html;
+    document.getElementById("bookInfoModal").style.display = "flex";
+  }
+
+  function closeBookInfo(event) {
+    if (event && event.target && event.target.id !== "bookInfoModal") return;
+    document.getElementById("bookInfoModal").style.display = "none";
+  }
+
+  /* ─────────────────────────────────────────────
+     JOB INFO MODAL (reuses the book info modal)
+  ───────────────────────────────────────────── */
+  function showJobInfo(event, jobId) {
+    if (event && event.target && event.target.closest("button")) return; // ignore Resume clicks
+    const j = jobsData[jobId];
+    if (!j) return;
+
+    document.getElementById("modalKicker").textContent = "Job Details";
+    document.getElementById("bookInfoTitle").textContent = j.book_id;
+
+    const isReady = j.status === "extraction_done";
+    const qp = j.qdrant_progress || {};
+    const np = j.neo4j_progress  || {};
+
+    const stats = [
+      { label: "Job ID",    val: j.job_id,    cls: "mono" },
+      { label: "Status",    val: j.status || "—" },
+      { label: "Progress",  val: (j.percent ?? 0) + "%" },
+      { label: "Stage",     val: j.stage || "—" },
+      { label: "Vectors",   val: (qp.status || "—") + (qp.percent != null ? ` (${qp.percent}%)` : "") },
+      { label: "Graph",     val: (np.status || "—") + (np.percent != null ? ` (${np.percent}%)` : "") },
+    ];
+
+    let html = `
+      <div class="bi-status">
+        ${isReady
+          ? '<span class="pj-badge ready">✓ Ready to ingest</span>'
+          : '<span class="pj-badge failed">✗ Ingestion failed</span>'}
+        ${j.updated_at ? `<span class="bi-time">Updated ${formatRelativeTime(j.updated_at)}</span>` : ""}
+      </div>
+
+      <div class="bi-stats">
+        ${stats.map(s => `
+          <div class="bi-stat">
+            <div class="bi-stat-val ${s.cls || ""}">${s.val}</div>
+            <div class="bi-stat-lbl">${s.label}</div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+
+    if (j.message) {
+      html += `<div class="bi-note">${j.message}</div>`;
+    }
+    if (j.error) {
+      html += `<div class="bi-note error">${j.error}</div>`;
+    }
+
+    html += `<div class="bi-meta">
+      ${j.uploaded_by_name ? `<span>Uploaded by ${esc(j.uploaded_by_name)}</span>` : ""}
+      ${j.queue_position ? `<span>Queue position ${j.queue_position}</span>` : ""}
+    </div>`;
+
+    document.getElementById("bookInfoBody").innerHTML = html;
+    document.getElementById("bookInfoModal").style.display = "flex";
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeBookInfo();
+  });
+
+  /* ─────────────────────────────────────────────
+     PENDING JOBS
+  ───────────────────────────────────────────── */
+  function renderPendingJobs(jobs) {
+    const el = document.getElementById("pendingList");
+    if (!jobs || !jobs.length) {
+      el.innerHTML = '<div class="empty-state">No pending jobs — all pipelines are either running or complete.</div>';
+      return;
+    }
+    jobs.forEach(j => { jobsData[j.job_id] = j; });
+    el.innerHTML = jobs.map(j => {
+      const isReady  = j.status === "extraction_done";
+      const badge    = isReady
+        ? `<span class="pj-badge ready">✓ Ready to ingest</span>`
+        : `<span class="pj-badge failed">✗ Ingestion failed</span>`;
+      const timeStr  = j.updated_at ? formatRelativeTime(j.updated_at) : "";
+      return `
+        <div class="pending-job clickable" onclick="showJobInfo(event, '${j.job_id}')" title="View job details">
+          <div class="pending-job-info">
+            <div class="pending-job-title">${j.book_id}</div>
+            ${badge}
+            <div class="pj-time">${timeStr}</div>
+          </div>
+          <button class="btn btn-sm" onclick="event.stopPropagation(); resumeJob('${j.job_id}', '${j.book_id}')">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Resume
+          </button>
+          <svg class="pending-job-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      `;
+    }).join("");
+  }
+
+  async function resumeJob(jobId, bookId) {
+    clearAlert("mainAlert");
+    try {
+      const data = await api("POST", `/resume/${jobId}`);
+      showProgressView(bookId, data.job_id);
+    } catch (e) {
+      showAlert("mainAlert", `Resume failed: ${e.message}`, "error");
+      showView("pendingView"); // stay on pending view so user sees error
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     FILE DROP + BOOK ID
+  ───────────────────────────────────────────── */
+  function handleFileSelect(e) {
+    const f = e.target.files[0];
+    if (f) setFile(f);
+  }
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById("fileDrop").classList.remove("dragover");
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith(".pdf")) setFile(f);
+    else showAlert("mainAlert", "Please drop a PDF file.");
+  }
+  function setFile(f) {
+    selectedFile = f;
+    document.getElementById("fileName").textContent = f.name;
+    updateSubmitBtn();
+  }
+
+  function checkBookId() {
+    const val      = document.getElementById("bookId").value.trim();
+    const statusEl = document.getElementById("bookIdStatus");
+    clearTimeout(bookIdCheckTimer);
+    if (!val) { statusEl.innerHTML = ""; return; }
+    const valid = /^[A-Za-z0-9_\-]+$/.test(val);
+    if (!valid) {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "Only letters, numbers, hyphens, underscores allowed.";
+      updateSubmitBtn(false); return;
+    }
+    statusEl.style.color = "var(--mute)";
+    statusEl.textContent = "Checking...";
+    bookIdCheckTimer = setTimeout(async () => {
+      try {
+        const data = await api("GET", `/library/check?book_id=${val}`);
+        if (data.exists || data.running) {
+          statusEl.style.color = "var(--danger)";
+          statusEl.textContent = data.running
+            ? `"${val}" is already being processed.`
+            : `"${val}" already exists in the library.`;
+          updateSubmitBtn(false);
+        } else {
+          statusEl.style.color = "var(--success)";
+          statusEl.textContent = `"${val}" is available.`;
+          updateSubmitBtn();
+        }
+      } catch { statusEl.textContent = ""; updateSubmitBtn(); }
+    }, 600);
+  }
+
+  function updateSubmitBtn(bookOk = null) {
+    const bookId = document.getElementById("bookId").value.trim();
+    const valid  = bookOk !== false && /^[A-Za-z0-9_\-]+$/.test(bookId) && bookId.length > 0;
+    document.getElementById("submitBtn").disabled = !(valid && selectedFile);
+  }
+
+  /* ─────────────────────────────────────────────
+     UPLOAD
+  ───────────────────────────────────────────── */
+  async function handleUpload() {
+    const bookId = document.getElementById("bookId").value.trim();
+    clearAlert("mainAlert");
+    if (!selectedFile || !bookId) {
+      showAlert("mainAlert", "Please provide a Book ID and select a PDF file.");
+      return;
+    }
+    document.getElementById("submitBtn").disabled = true;
+    const ocrEl   = document.getElementById("ocrToggle");
+    const ocrFlag = ocrEl && ocrEl.checked ? "true" : "false";
+    const form = new FormData();
+    form.append("book_id",     bookId);
+    form.append("file",        selectedFile);
+    form.append("ocr_enabled", ocrFlag);
+    try {
+      const data = await api("POST", "/upload_book", form, true);
+      showProgressView(bookId, data.job_id);
+    } catch (e) {
+      showAlert("mainAlert", e.message);
+      document.getElementById("submitBtn").disabled = false;
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     SSE + PROGRESS
+  ───────────────────────────────────────────── */
+  function startSSE(jobId) {
+    if (sseSource) sseSource.close();
+    sseSource = new EventSource(`/progress/${jobId}`);
+    sseSource.onmessage = (event) => {
+      const d = JSON.parse(event.data);
+      updateProgressUI(d);
+
+      if (d.status === "completed") {
+        sseSource.close(); sseSource = null;
+        setTimeout(() => showSuccess(currentBookId, d.confidence_report), 800);
+      } else if (d.status === "ingestion_failed") {
+        sseSource.close(); sseSource = null;
+        // Job is now resumable — show hub with a warning
+        showHubView();
+        showAlert("mainAlert",
+          `Ingestion failed for ${currentBookId}: ${d.error || "unknown error"}. ` +
+          `The job appears in Pending Jobs and can be resumed.`, "warn");
+      } else if (d.status === "extraction_failed") {
+        sseSource.close(); sseSource = null;
+        // Phase 1 failed — nothing to resume, must re-upload
+        document.getElementById("statusDot").className     = "status-dot failed";
+        document.getElementById("mainBar").style.background = "var(--danger)";
+        document.getElementById("stageLabel").textContent  = "Extraction Failed";
+        document.getElementById("stageMsg").textContent    = d.error || "Unknown error";
+      }
+    };
+    sseSource.onerror = () => {};
+  }
+
+  function updateProgressUI(d) {
+    const pct    = clampPct(d.percent);
+    const status = d.status  || "";
+
+    document.getElementById("mainBar").style.width     = pct + "%";
+    document.getElementById("percentLabel").textContent = pct + "%";
+    document.getElementById("stageLabel").textContent   = d.stage   || "";
+    document.getElementById("stageMsg").textContent     = d.message || "";
+
+    // Phase pill state
+    const phase1Done    = ["extraction_done","ingesting","completed"].includes(status);
+    const phase2Active  = ["ingesting"].includes(status);
+    const phase2Done    = status === "completed";
+
+    document.getElementById("phase1Pill").className =
+      "phase-pill" + (phase1Done ? " done" : (status === "extracting" || status === "queued" ? " active" : ""));
+    document.getElementById("phase2Pill").className =
+      "phase-pill" + (phase2Done ? " done" : (phase2Active ? " active" : ""));
+
+    // Sub-bars (Phase 2 only)
+    const qp      = d.qdrant_progress || {};
+    const np      = d.neo4j_progress  || {};
+    const showSub = ["ingesting","completed"].includes(status) ||
+                    qp.status === "running" || np.status === "running" ||
+                    qp.status === "done"    || np.status === "done";
+
+    document.getElementById("subProgress").style.display = showSub ? "block" : "none";
+    if (showSub) {
+      const qPct = clampPct(qp.percent);
+      const nPct = clampPct(np.percent);
+      document.getElementById("qdrantBar").style.width  = qPct + "%";
+      document.getElementById("neo4jBar").style.width   = nPct + "%";
+      document.getElementById("qdrantPct").textContent  = qPct + "%";
+      document.getElementById("neo4jPct").textContent   = nPct + "%";
+    }
+
+    // Status dot
+    const dot = document.getElementById("statusDot");
+    if      (status === "completed")          dot.className = "status-dot done";
+    else if (status === "extraction_failed" ||
+             status === "ingestion_failed")   dot.className = "status-dot failed";
+    else                                      dot.className = "status-dot";
+  }
+
+  function setPhase(n) {
+    document.getElementById("phase1Pill").className = "phase-pill" + (n >= 1 ? (n > 1 ? " done" : " active") : "");
+    document.getElementById("phase2Pill").className = "phase-pill" + (n >= 2 ? " active" : "");
+  }
+
+  /* ─────────────────────────────────────────────
+     SUCCESS REPORT
+  ───────────────────────────────────────────── */
+  function showSuccess(bookId, report) {
+    showView("successView");
+    document.getElementById("successBookId").textContent = bookId;
+
+    if (!report) {
+      document.getElementById("rCoveragePct").textContent = "Ready";
+      return;
+    }
+
+    const total  = report.total_pages        || 0;
+    const good   = report.good_pages          || 0;
+    const short  = report.short_pages         || 0;
+    const blank  = report.blank_image_pages   || 0;
+    const chunks = report.total_chunks        || 0;
+    const avgW   = report.avg_words_per_chunk || 0;
+    const cov    = report.coverage_percent    || 0;
+    const zeros  = report.zero_chunk_pages    || [];
+
+    const covColor = cov >= 85 ? "var(--success)" : cov >= 65 ? "var(--warning)" : "var(--danger)";
+
+    setText("rCoveragePct",  cov + "%");
+    setStyle("rCoveragePct", "color", covColor);
+    setStyle("rCoverageBar", "width", cov + "%");
+
+    setText("rTotalPages",  total);
+    setText("rTotalChunks", chunks);
+    setText("rGoodPages",   good);
+    setText("rAvgWords",    avgW);
+
+    const pct = n => total ? Math.round(n / total * 100) + "%" : "0%";
+    setText("rGoodCount",  good);
+    setText("rShortCount", short);
+    setText("rBlankCount", blank);
+    setStyle("rGoodBar",  "width", pct(good));
+    setStyle("rShortBar", "width", pct(short));
+    setStyle("rBlankBar", "width", pct(blank));
+
+    const warnBox = document.getElementById("rWarnBox");
+    if (zeros.length > 0) {
+      warnBox.classList.add("show");
+      document.getElementById("rWarnText").textContent =
+        `${zeros.length} page${zeros.length > 1 ? "s" : ""} had text but produced no chunks ` +
+        `(pages ${zeros.slice(0,5).join(", ")}${zeros.length > 5 ? "…" : ""}). ` +
+        "These pages will not appear in search results.";
+    } else {
+      warnBox.classList.remove("show");
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     ALERT HELPERS
+  ───────────────────────────────────────────── */
+  function showAlert(id, msg, type = "error") {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `alert ${type} show`;
+  }
+  function clearAlert(id) {
+    const el = document.getElementById(id);
+    if (el) { el.className = "alert"; el.textContent = ""; }
+  }
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+  function setStyle(id, prop, val) {
+    const el = document.getElementById(id);
+    if (el) el.style[prop] = val;
+  }
+
+  /* ─────────────────────────────────────────────
+     UTILITIES
+  ───────────────────────────────────────────── */
+  function resetUploadForm() {
+    selectedFile = null;
+    const bookId = document.getElementById("bookId");
+    if (bookId) bookId.value = "";
+    document.getElementById("fileName").textContent      = "No file selected";
+    document.getElementById("submitBtn").disabled        = true;
+    document.getElementById("bookIdStatus").textContent  = "";
+    const ocrEl = document.getElementById("ocrToggle");
+    if (ocrEl) ocrEl.checked = false;
+    if (sseSource) { sseSource.close(); sseSource = null; }
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatDateTime(isoStr) {
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return "—";
+      return d.toLocaleString(undefined, {
+        year: "numeric", month: "short", day: "numeric",
+        hour: "numeric", minute: "2-digit",
+      });
+    } catch { return "—"; }
+  }
+
+  function formatDuration(seconds) {
+    const total = Math.max(0, Math.round(Number(seconds) || 0));
+    const d = Math.floor(total / 86400);
+    const h = Math.floor((total % 86400) / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const parts = [];
+    if (d) parts.push(`${d}d`);
+    if (h) parts.push(`${h}h`);
+    if (m) parts.push(`${m}m`);
+    if (s || !parts.length) parts.push(`${s}s`);
+    return parts.join(" ");
+  }
+
+  function formatRelativeTime(isoStr) {
+    try {
+      const diff = Date.now() - new Date(isoStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1)   return "just now";
+      if (mins < 60)  return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24)   return `${hrs}h ago`;
+      return `${Math.floor(hrs / 24)}d ago`;
+    } catch { return ""; }
+  }
+
+  /* ─────────────────────────────────────────────
+     KEYBOARD SHORTCUTS
+  ───────────────────────────────────────────── */
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const loginForm  = document.getElementById("loginForm");
+    const signupForm = document.getElementById("signupForm");
+    if (loginForm  && loginForm.style.display  !== "none") handleLogin();
+    if (signupForm && signupForm.style.display !== "none") handleSignup();
+  });
+</script>
+</body>
+</html>

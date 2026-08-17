@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/">
+  <title>Krutrim RAG — Chat</title>
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="css/tokens.css?v=50">
+  <link rel="stylesheet" href="css/base.css?v=50">
+  <link rel="stylesheet" href="css/components.css?v=50">
+  <link rel="stylesheet" href="css/chat.css?v=50">
+  <!-- PDF.js library -->
+  <script src="js/lib/pdf-adapter.js"></script>
+  <script src="js/lib/marked.min.js"></script>
+  <link rel="icon" type="image/svg+xml" href="isro-logo.svg">
+</head>
+<body>
+  <nav class="primary-nav">
+    <div class="nav-brand" style="display: flex; align-items: center; gap: 12px;">
+      <button class="btn-icon-ghost" id="sidebar-toggle" aria-label="Toggle Sidebar" title="Toggle Sidebar" style="margin-right: 8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <img src="isro-logo.svg" alt="ISRO Logo" style="height: 36px; width: auto;">
+      <div style="display: flex; flex-direction: column; justify-content: center;">
+        <span class="ascii-logo" style="font-weight: 600; font-size: 18px; line-height: 1.2;">Krutrim RAG</span>
+        <span style="font-size: 12px; color: var(--mute); line-height: 1.2;">Retrieval-Augmented Generation System</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:var(--space-sm)">
+      <span class="chat-status" id="chat-status" style="margin-right:var(--space-md)">Idle</span>
+      <button class="btn-icon-ghost" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
+    </div>
+  </nav>
+
+  <div class="chat-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-search">
+        <div style="position: relative; width: 100%; cursor: pointer;" id="sidebar-search-trigger">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <div class="search-input" style="display: flex; align-items: center; padding-left: 28px; padding-right: 8px; color: var(--mute);">
+            Search chats... <kbd style="margin-left: auto; font-family: inherit; font-size: 10px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; padding: 2px 4px; color: var(--mute);">Ctrl K</kbd>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <span class="badge-section">Chats</span>
+        <button class="btn-icon-ghost" id="new-session-btn" aria-label="New Chat" title="New Chat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div>
+      <div class="sidebar-list" id="session-list"></div>
+      <div class="sidebar-footer hairline-top">
+        <div class="user-profile-card" id="user-profile-card" role="button" tabindex="0" title="Open settings" aria-label="Open settings">
+          <div class="user-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-user-name"></div>
+            <div class="user-email" id="sidebar-user-email"></div>
+            <div class="user-role" id="sidebar-user-role"></div>
+          </div>
+          <button class="btn-icon-ghost" id="user-settings-btn" aria-hidden="true" tabindex="-1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-chat">
+      <div class="chat-header">
+        <div style="display:flex;align-items:center;gap:var(--space-sm)">
+          <span class="body-strong" id="chat-title">Select Chat</span>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="message-thread" id="message-thread">
+          <div class="chat-empty" id="empty-state">
+            <div class="chat-empty-icon-wrap">
+              <div class="chat-empty-icon-ring"></div>
+              <div class="chat-empty-icon-orb">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="chat-empty-title">Select a chat to begin</div>
+            <div class="chat-empty-hint">Choose a conversation from the sidebar or start a new one.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-area" style="position: relative;">
+        <button id="scroll-to-bottom-btn" class="scroll-bottom-btn" aria-label="Scroll to bottom" title="Scroll to bottom">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+          <span>Scroll to bottom</span>
+        </button>
+        <form class="chat-input-box" id="chat-form" autocomplete="off">
+          <textarea
+            class="input-textarea"
+            id="chat-input"
+            placeholder="Ask anything, @ to mention, / for actions"
+            autofocus
+            rows="1"
+          ></textarea>
+
+          <div class="chat-input-toolbar">
+            <div class="toolbar-left">
+              <div class="custom-dropdown" id="model-dropdown">
+                <button type="button" class="btn-text-ghost dropdown-toggle" id="model-dropdown-toggle">
+                  <svg class="dropdown-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  <span class="dropdown-label" id="model-dropdown-label">Fast</span>
+                  <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="dropdown-menu" id="model-dropdown-menu">
+                  <button type="button" class="dropdown-item selected" data-value="fast">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span>Fast</span>
+                  </button>
+                  <button type="button" class="dropdown-item" data-value="balanced">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                    <span>Balanced</span>
+                  </button>
+                  <button type="button" class="dropdown-item" data-value="deep">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    <span>Deep</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="toolbar-right">
+
+              <button type="button" id="stop-generate-btn" class="btn-circle-solid" style="display: none; background-color: var(--danger, #ff4d4f); border-color: var(--danger, #ff4d4f);" aria-label="Stop">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>
+              </button>
+              <button type="submit" id="send-message-btn" class="btn-circle-solid" aria-label="Send">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <!-- PDF Viewer — Right Sidebar Drawer -->
+    <div class="pdf-drawer" id="pdf-viewer-modal" role="complementary" aria-label="PDF Reference Viewer">
+      <!-- Drag handle -->
+      <div class="pdf-drawer-handle"></div>
+
+      <!-- Header -->
+      <div class="pdf-viewer-header">
+        <div class="pdf-viewer-header-left">
+          <div class="pdf-viewer-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </div>
+          <div class="pdf-viewer-titles">
+            <div class="pdf-viewer-title" id="pdf-viewer-title">Document</div>
+          </div>
+        </div>
+        <div class="pdf-page-controls">
+          <button class="pdf-page-btn pdf-zoom-btn" id="pdf-zoom-out" title="Zoom out">−</button>
+          <span class="pdf-page-info" id="pdf-zoom-level">Fit</span>
+          <button class="pdf-page-btn pdf-zoom-btn" id="pdf-zoom-in" title="Zoom in">+</button>
+          <span class="pdf-header-divider"></span>
+          <button class="pdf-page-btn pdf-nav-btn" id="pdf-prev-btn" title="Previous page" disabled>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="pdf-page-info"><span id="pdf-current-page">1</span>/<span id="pdf-total-pages">1</span></span>
+          <button class="pdf-page-btn pdf-nav-btn" id="pdf-next-btn" title="Next page" disabled>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+        <div class="pdf-viewer-header-right">
+          <label class="pdf-toggle" title="Toggle highlights">
+            <input type="checkbox" id="pdf-toggle-highlight" checked>
+            <span class="pdf-toggle-slider"></span>
+            <span class="pdf-toggle-label pdf-toggle-label-full">Text highlights</span>
+            <span class="pdf-toggle-label pdf-toggle-label-short">TH</span>
+          </label>
+          <button class="btn-icon-ghost pdf-close-btn" id="pdf-viewer-close" title="Close viewer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- PDF canvas -->
+      <div class="pdf-canvas-area">
+        <div id="pdf-page-canvas" style="min-height: 0;">
+          <div id="pdf-canvas-wrapper" style="position: relative; display: inline-block;">
+            <canvas id="pdf-render-canvas" style="display: block; box-shadow: 0 2px 6px rgba(0,0,0,0.3), 0 10px 32px rgba(0,0,0,0.25); border-radius: 2px;"></canvas>
+          </div>
+          <div class="pdf-page-number-badge" id="pdf-page-badge" style="position: static; margin-top: 12px; transform: none;">p. 1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Overlay for Creating New Chat -->
+  <div class="modal-overlay" id="new-chat-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Create New Chat</h3>
+        <button class="btn-icon-ghost modal-close-btn" id="modal-close" aria-label="Close dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <form id="new-chat-form" class="modal-body">
+        <div class="form-group">
+          <label for="modal-chat-title" class="form-label">Chat Title</label>
+          <input type="text" id="modal-chat-title" class="input-text" placeholder="Enter chat title..." required autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Book Selection</label>
+          <div class="custom-dropdown form-dropdown" id="modal-book-dropdown" style="width: 100%;">
+            <button type="button" class="input-text dropdown-toggle" id="modal-book-toggle" style="display: flex; align-items: center; justify-content: space-between; text-align: left; width: 100%;">
+              <span id="modal-book-label" style="color: var(--mute);">Choose a book...</span>
+              <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--mute); transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="dropdown-menu" id="modal-book-menu" style="top: 100%; bottom: auto; width: 100%; max-height: 200px; overflow-y: auto; margin-top: 4px;">
+              <!-- Populated dynamically from /library API -->
+            </div>
+            <input type="hidden" id="modal-book-select" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Model Type</label>
+          <div class="model-select-group">
+            <label class="model-select-btn">
+              <input type="radio" name="modal-model" value="fast" checked>
+              <div class="model-btn-content">
+                <svg class="model-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span>Fast</span>
+              </div>
+            </label>
+            <label class="model-select-btn">
+              <input type="radio" name="modal-model" value="balanced">
+              <div class="model-btn-content">
+                <svg class="model-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                <span>Balanced</span>
+              </div>
+            </label>
+            <label class="model-select-btn">
+              <input type="radio" name="modal-model" value="deep">
+              <div class="model-btn-content">
+                <svg class="model-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                <span>Deep</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn-primary">Create Chat</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Overlay for Settings -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-card settings-modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Settings</h3>
+        <button class="btn-icon-ghost modal-close-btn" id="settings-modal-close" aria-label="Close dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="settings-shell">
+        <!-- LEFT NAV -->
+        <nav class="settings-nav">
+          <button type="button" class="settings-nav-btn active" data-settings-pane="profile">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>Profile</span>
+          </button>
+          <button type="button" class="settings-nav-btn" data-settings-pane="appearance">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+            <span>Appearance</span>
+          </button>
+          <button type="button" class="settings-nav-btn" data-settings-pane="developer">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            <span>Developer</span>
+          </button>
+          <button type="button" class="settings-nav-btn" data-settings-pane="data">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            <span>Data</span>
+          </button>
+          <button type="button" class="settings-nav-btn" data-settings-pane="about">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <span>About</span>
+          </button>
+          <div class="settings-nav-spacer"></div>
+          <button type="button" class="settings-nav-btn settings-nav-logout" onclick="window.location.href='/pages/logout.html'">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Log out</span>
+          </button>
+          <div class="settings-version">Krutrim RAG v1.0</div>
+        </nav>
+
+        <!-- RIGHT PANES -->
+        <div class="settings-panes">
+          <div class="settings-pane active" id="settings-pane-profile">
+            <div class="settings-pane-title">Profile</div>
+
+            <div class="settings-profile-header">
+              <div class="settings-avatar" id="settings-user-avatar">?</div>
+              <div class="settings-profile-info">
+                <div class="settings-user-name" id="settings-user-name"></div>
+                <div class="settings-user-email" id="settings-user-email"></div>
+              </div>
+            </div>
+
+            <div class="settings-fields">
+              <div class="settings-field">
+                <label class="settings-field-label" for="settings-field-name">Name</label>
+                <input type="text" id="settings-field-name" class="input-text settings-field-input" readonly>
+              </div>
+              <div class="settings-field">
+                <label class="settings-field-label" for="settings-field-email">Email</label>
+                <input type="email" id="settings-field-email" class="input-text settings-field-input" readonly>
+              </div>
+              <div class="settings-field">
+                <label class="settings-field-label" for="settings-field-role">Role</label>
+                <input type="text" id="settings-field-role" class="input-text settings-field-input" readonly>
+              </div>
+              <div class="settings-field">
+                <label class="settings-field-label" for="settings-field-id">User ID</label>
+                <input type="text" id="settings-field-id" class="input-text settings-field-input" readonly>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-pane" id="settings-pane-appearance">
+            <div class="settings-pane-title">Appearance</div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <div class="settings-row-title">Theme</div>
+                <div class="settings-row-desc">Choose between light and dark appearance</div>
+              </div>
+              <div class="settings-seg" id="settings-theme-seg">
+                <button type="button" class="settings-seg-btn" data-theme-value="light">Light</button>
+                <button type="button" class="settings-seg-btn" data-theme-value="dark">Dark</button>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <div class="settings-row-title">Font Size</div>
+                <div class="settings-row-desc">Adjust the text size of messages and the interface</div>
+              </div>
+              <div class="settings-seg" id="settings-font-seg">
+                <button type="button" class="settings-seg-btn" data-font-value="sm">Small</button>
+                <button type="button" class="settings-seg-btn" data-font-value="md">Medium</button>
+                <button type="button" class="settings-seg-btn" data-font-value="lg">Large</button>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <div class="settings-row-title">Reduce Motion</div>
+                <div class="settings-row-desc">Minimize animations and transitions across the app</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="settings-reduce-motion">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-pane" id="settings-pane-developer">
+            <div class="settings-pane-title">Developer</div>
+            <div class="settings-developer-card">
+              <div class="settings-dev-avatar">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </div>
+              <div class="settings-dev-name">Krutrim RAG</div>
+              <div class="settings-dev-sub">Retrieval-Augmented Generation System</div>
+            </div>
+
+            <div class="settings-team-title">Development Team</div>
+            <div class="settings-team-list">
+              <a href="https://humsafar.isro.gov.in" class="settings-team-link" target="_blank" rel="noopener noreferrer" title="Dr. Rajan Kumar — open Humsafar">
+                <span class="settings-team-avatar">RK</span>
+                <span class="settings-team-name">Dr. Rajan Kumar</span>
+                <svg class="settings-team-ext" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>
+              <a href="https://humsafar.isro.gov.in" class="settings-team-link" target="_blank" rel="noopener noreferrer" title="S. Nair — open Humsafar">
+                <span class="settings-team-avatar">SN</span>
+                <span class="settings-team-name">S. Nair</span>
+                <svg class="settings-team-ext" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>
+              <a href="https://humsafar.isro.gov.in" class="settings-team-link" target="_blank" rel="noopener noreferrer" title="K. Meena — open Humsafar">
+                <span class="settings-team-avatar">KM</span>
+                <span class="settings-team-name">K. Meena</span>
+                <svg class="settings-team-ext" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="settings-pane" id="settings-pane-about">
+            <div class="settings-pane-title">About</div>
+            <p style="font-size: var(--text-body-md); line-height: 1.7; color: var(--mute); margin-bottom: var(--space-sm);">Krutrim RAG is an internal knowledge-base system built to <strong style="color: var(--ink);">process and search ISRO's internal documentation</strong> engineering documents, reports, and technical manuals. It ingests PDF books, indexes them into a <strong style="color: var(--ink);">vector store</strong> and a <strong style="color: var(--ink);">knowledge graph</strong>, and answers natural-language questions with <strong style="color: var(--ink);">inline citations</strong> and clickable page references all on locally hosted models, fully offline and secure.</p>
+            <p style="font-size: var(--text-body-md); line-height: 1.7; color: var(--mute);">Developed by the <strong style="color: var(--ink);">Payload Check-out &amp; Testing Division (PCTD)</strong> at the <strong style="color: var(--ink);">Checkout Lab</strong>, <strong style="color: var(--ink);">Space Applications Centre (SAC)</strong>, Indian Space Research Organisation (ISRO), Ahmedabad.</p>
+          </div>
+
+          <div class="settings-pane" id="settings-pane-data">
+            <div class="settings-pane-title">Data</div>
+            <p style="color: var(--mute); font-size: var(--text-body-md); margin-bottom: var(--space-sm);">Manage stored knowledge base data.</p>
+
+            <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: var(--space-md);">
+              <div class="settings-row-text">
+                <div class="settings-row-title">Delete Book</div>
+                <div class="settings-row-desc">Permanently delete a book and everything associated with it from the knowledge base. This action cannot be undone.</div>
+              </div>
+              <div class="custom-dropdown form-dropdown" id="settings-delete-book-dropdown" style="width: 100%;">
+                <button type="button" class="input-text dropdown-toggle" id="settings-delete-book-toggle" style="display: flex; align-items: center; justify-content: space-between; text-align: left; width: 100%;">
+                  <span id="settings-delete-book-label" style="color: var(--mute);">Choose a book...</span>
+                  <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--mute); transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="dropdown-menu" id="settings-delete-book-menu" style="top: 100%; bottom: auto; width: 100%; max-height: 200px; overflow-y: auto; margin-top: 4px;">
+                  <!-- Populated dynamically from /library API -->
+                </div>
+                <input type="hidden" id="settings-delete-book-select" required>
+              </div>
+              <button type="button" class="btn-danger" id="settings-delete-book-btn" style="width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                Delete Book
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Overlay for Search in Chat -->
+  <div class="modal-overlay" id="search-modal">
+    <div class="modal-card" style="max-width: 650px; display: flex; flex-direction: column; max-height: 80vh; padding: 0;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--hairline); padding: var(--space-md) var(--space-lg); display: flex; align-items: center; justify-content: space-between;">
+        <input type="text" id="chat-search-input" class="input-text" placeholder="Search chats..." autocomplete="off" style="width: 100%; border: none; background: transparent; padding: 0; font-size: 16px; outline: none; box-shadow: none;">
+        <button class="btn-icon-ghost modal-close-btn" id="search-modal-close" aria-label="Close dialog" style="margin-left: 16px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="search-results-container" style="flex: 1; overflow-y: auto; padding: var(--space-md) 0;">
+        <div id="search-results-empty" style="text-align: center; color: var(--mute); padding: var(--space-xl) 0; font-size: var(--text-body-md);">
+          Type to search messages in the current chat.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Overlay for Share Link -->
+  <div class="modal-overlay" id="share-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Share Chat</h3>
+        <button class="btn-icon-ghost modal-close-btn" id="share-modal-close" aria-label="Close dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--mute); font-size: var(--text-body-sm); margin-bottom: var(--space-md);">Anyone with this link can view this chat (read-only). No login required.</p>
+        <div style="display: flex; gap: var(--space-sm); align-items: center;">
+          <input type="text" id="share-link-input" class="input-text" readonly style="flex: 1; font-size: var(--text-body-sm); font-family: var(--font-mono);">
+          <button type="button" class="btn-primary" id="share-copy-btn" style="white-space: nowrap; height: 36px;">Copy</button>
+        </div>
+        <div id="share-toast" style="display: none; margin-top: var(--space-sm); font-size: var(--text-caption-md); color: var(--success);">Link copied to clipboard!</div>
+        <hr style="border: none; border-top: 1px solid var(--hairline); margin: var(--space-md) 0;">
+        <button type="button" class="dropdown-item" id="share-revoke-btn" style="padding: var(--space-sm) 0; width: 100%; color: var(--danger);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger);"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          <span>Revoke link</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js?v=50"></script>
+</body>
+</html>

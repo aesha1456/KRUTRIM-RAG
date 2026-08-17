@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+neo4j
+qdrant-client
+pymongo
+sentence-transformers
+PyJWT
+python-multipart
+motor
+httpx
