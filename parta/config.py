@@ -45,7 +45,8 @@ from partb.dbnet import mongo_uri
 
 MONGO_URI = mongo_uri()
 MONGO_DB_NAME = "rag_system"
-JWT_SECRET = "ISRO_RAG_SECRET_CHANGE_IN_PROD"
+# Add JWT_SECRET according to your key
+JWT_SECRET = ""
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 8
 # Remember-me ("stay signed in") token lifetime.
